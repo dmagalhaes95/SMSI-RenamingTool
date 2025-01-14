@@ -1,0 +1,148 @@
+// Renaming Tool UI Script for After Effects
+{
+    function renamingToolUI(thisObj) {
+        // Criação do painel
+        var windowTitle = "Renaming Tool";
+        var myPanel = (thisObj instanceof Panel) ? thisObj : new Window("palette", windowTitle, undefined, { resizeable: true });
+
+        if (myPanel !== null) {
+            // Interface do usuário
+            myPanel.orientation = "column";
+            myPanel.alignChildren = ["fill", "top"];
+            myPanel.spacing = 10;
+            myPanel.margins = 10;
+
+            // Campo de prefixo para a marca
+            var prefixGroup = myPanel.add("group");
+            prefixGroup.orientation = "row";
+            prefixGroup.add("statictext", undefined, "Brand Prefix:");
+            var prefixInput = prefixGroup.add("edittext", undefined, "Brand_");
+            prefixInput.characters = 20;
+
+            // Seleção de tipo de layer
+            var typeGroup = myPanel.add("group");
+            typeGroup.orientation = "column";
+            typeGroup.alignChildren = ["left", "top"];
+            typeGroup.add("statictext", undefined, "Select Layer Types:");
+
+            var typeCheckboxes = {
+                text: typeGroup.add("checkbox", undefined, "Text Layers"),
+                shape: typeGroup.add("checkbox", undefined, "Shape Layers"),
+                image: typeGroup.add("checkbox", undefined, "Image Layers"),
+                other: typeGroup.add("checkbox", undefined, "Other Layers")
+            };
+
+            // Botões de execução
+            var buttonGroup = myPanel.add("group");
+            buttonGroup.orientation = "row";
+
+            var renameSelectedButton = buttonGroup.add("button", undefined, "Rename Selected Layers");
+            var renameAllButton = buttonGroup.add("button", undefined, "Rename All Layers");
+
+            // Função principal de renomeação
+            function renameLayers(layers, prefix, options) {
+                for (var i = 0; i < layers.length; i++) {
+                    var layer = layers[i];
+                    var newName = prefix;
+
+                    // Determinar o tipo de layer
+                    if (options.text && layer instanceof TextLayer) {
+                        newName += "Text_";
+                    } else if (options.shape && layer.matchName === "ADBE Vector Layer") {
+                        newName += "Shape_";
+                    } else if (options.image && layer.matchName === "ADBE AV Layer") {
+                        newName += "Image_";
+                    } else if (options.other) {
+                        newName += "Other_";
+                    } else {
+                        continue; // Ignora se o tipo não foi selecionado
+                    }
+
+                    // Adiciona índice para evitar nomes duplicados
+                    newName += (i + 1);
+                    layer.name = newName;
+                }
+            }
+
+            // Ação do botão "Rename Selected Layers"
+            renameSelectedButton.onClick = function () {
+                var comp = app.project.activeItem;
+
+                if (!comp || !(comp instanceof CompItem)) {
+                    alert("Please select a composition.");
+                    return;
+                }
+
+                var selectedLayers = comp.selectedLayers;
+
+                if (selectedLayers.length === 0) {
+                    alert("No layers selected. Please select at least one layer.");
+                    return;
+                }
+
+                app.beginUndoGroup("Rename Selected Layers");
+
+                renameLayers(selectedLayers, prefixInput.text, {
+                    text: typeCheckboxes.text.value,
+                    shape: typeCheckboxes.shape.value,
+                    image: typeCheckboxes.image.value,
+                    other: typeCheckboxes.other.value
+                });
+
+                app.endUndoGroup();
+                alert("Selected layers renamed successfully!");
+            };
+
+            // Ação do botão "Rename All Layers"
+            renameAllButton.onClick = function () {
+                var comp = app.project.activeItem;
+
+                if (!comp || !(comp instanceof CompItem)) {
+                    alert("Please select a composition.");
+                    return;
+                }
+
+                // Para garantir que estamos renomeando todos os layers, incluindo precomposições
+                var allLayers = [];
+                for (var i = 1; i <= comp.numLayers; i++) {
+                    var layer = comp.layer(i);
+
+                    // Verifique se o layer não é um guia ou vazio
+                    if (layer && layer.enabled) {
+                        allLayers.push(layer);
+                    }
+                }
+
+                app.beginUndoGroup("Rename All Layers");
+
+                renameLayers(allLayers, prefixInput.text, {
+                    text: typeCheckboxes.text.value,
+                    shape: typeCheckboxes.shape.value,
+                    image: typeCheckboxes.image.value,
+                    other: typeCheckboxes.other.value
+                });
+
+                app.endUndoGroup();
+                alert("All layers renamed successfully!");
+            };
+
+            // Tornar o painel redimensionável
+            myPanel.layout.layout(true);
+            myPanel.layout.resize();
+            myPanel.onResizing = myPanel.onResize = function () { this.layout.resize(); };
+        }
+
+        return myPanel;
+    }
+
+    // Inicializar o painel
+    if (this instanceof Panel) {
+        renamingToolUI(this);
+    } else {
+        var panel = renamingToolUI(this);
+        if (panel instanceof Window) {
+            panel.center();
+            panel.show();
+        }
+    }
+}
