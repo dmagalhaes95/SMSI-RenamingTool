@@ -47,6 +47,15 @@
                 return "Other";
             }
 
+            function getOriginalName(name) {
+                // Remove all prefixes of format "Brand_Type_" from the start of the name
+                var prefixMatch = name.match(/^([A-Za-z0-9]+_(Text|Shape|Image|Other)_)+/);
+                if (prefixMatch) {
+                    return name.substring(prefixMatch[0].length);
+                }
+                return name;
+            }
+
             function renameLayer(layer, index, prefix, options) {
                 var type = getLayerType(layer);
                 var shouldRename = false;
@@ -59,7 +68,9 @@
                 }
 
                 if (shouldRename) {
-                    var originalName = layer.name;
+                    // Get the original name without any prefixes
+                    var originalName = getOriginalName(layer.name);
+                    // Add new prefix
                     layer.name = prefix + type + "_" + originalName;
                 }
 
