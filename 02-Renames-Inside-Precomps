@@ -59,7 +59,8 @@
                 }
 
                 if (shouldRename) {
-                    layer.name = prefix + type + "_" + (index + 1);
+                    var originalName = layer.name;
+                    layer.name = prefix + type + "_" + originalName;
                 }
 
                 // If this is a precomp and recursive option is checked, process its contents
